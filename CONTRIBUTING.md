@@ -349,6 +349,7 @@ ulimit -n 1048576
 - **Warmup period**: Extended warmup for JVM languages (5+ minutes)
 - **System isolation**: Close unnecessary applications
 - **Consistent environment**: Same hardware/OS for comparisons
+- **Dedicated benchmark host**: Prefer the Terraform-managed Hetzner runner in `infra/terraform/hetzner` for published benchmark numbers
 
 ### Result Validation
 

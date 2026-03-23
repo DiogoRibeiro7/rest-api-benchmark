@@ -18,6 +18,10 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
+      runner_label:
+        description: 'Self-hosted runner label for benchmark execution (leave empty to use repository variable or ubuntu-latest)'
+        required: false
+        type: string
       services:
         description: 'Services to benchmark (comma-separated, or "all")'
         required: false
@@ -43,6 +47,7 @@ jobs:
     name: Setup Test Matrix
     runs-on: ubuntu-latest
     outputs:
+      runner: ${{ steps.matrix.outputs.runner }}
       services: ${{ steps.matrix.outputs.services }}
       scenarios: ${{ steps.matrix.outputs.scenarios }}
       tests: ${{ steps.matrix.outputs.tests }}
@@ -53,6 +58,13 @@ jobs:
       - name: Setup test matrix
         id: matrix
         run: |
+          RUNNER_LABEL="${{ github.event.inputs.runner_label || vars.BENCHMARK_RUNNER_LABEL || '' }}"
+          if [ -n "$RUNNER_LABEL" ]; then
+            RUNNER=$(jq -nc --arg label "$RUNNER_LABEL" '["self-hosted","Linux","ARM64",$label]')
+          else
+            RUNNER='["ubuntu-latest"]'
+          fi
+
           # Determine services to test
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             if [ "${{ github.event.inputs.services }}" == "all" ]; then
@@ -72,17 +84,19 @@ jobs:
           
           TESTS='["hello","n-body","pi-digits"]'
           
+          echo "runner=$RUNNER" >> $GITHUB_OUTPUT
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
           echo "scenarios=$SCENARIOS" >> $GITHUB_OUTPUT
           echo "tests=$TESTS" >> $GITHUB_OUTPUT
           
+          echo "Execution runner: $RUNNER"
           echo "Testing services: $SERVICES"
           echo "Testing scenarios: $SCENARIOS"
           echo "Testing endpoints: $TESTS"
 
   performance-benchmark:
     name: Performance Benchmark
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJson(needs.setup-matrix.outputs.runner) }}
     needs: setup-matrix
     strategy:
       fail-fast: false

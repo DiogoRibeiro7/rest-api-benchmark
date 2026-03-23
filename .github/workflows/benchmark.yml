@@ -3,6 +3,10 @@ name: Full Benchmark Suite
 on:
   workflow_dispatch:
     inputs:
+      runner_label:
+        description: 'Self-hosted runner label for benchmark execution (leave empty to use repository variable or ubuntu-latest)'
+        required: false
+        type: string
       languages:
         description: 'Languages to benchmark (comma-separated or "all")'
         required: false
@@ -67,6 +71,7 @@ jobs:
     name: Setup Benchmark Matrix
     runs-on: ubuntu-latest
     outputs:
+      runner: ${{ steps.matrix.outputs.runner }}
       languages: ${{ steps.matrix.outputs.languages }}
       tests: ${{ steps.matrix.outputs.tests }}
       configurations: ${{ steps.matrix.outputs.configurations }}
@@ -76,6 +81,13 @@ jobs:
       - name: Setup benchmark matrix
         id: matrix
         run: |
+          RUNNER_LABEL="${{ github.event.inputs.runner_label || vars.BENCHMARK_RUNNER_LABEL || '' }}"
+          if [ -n "$RUNNER_LABEL" ]; then
+            RUNNER=$(jq -nc --arg label "$RUNNER_LABEL" '["self-hosted","Linux","ARM64",$label]')
+          else
+            RUNNER='["ubuntu-latest"]'
+          fi
+
           # Parse input parameters
           if [ "${{ github.event_name }}" == "schedule" ]; then
             # For scheduled runs, use comprehensive settings
@@ -118,6 +130,7 @@ jobs:
           SCENARIO_COUNT=$(echo "$SCENARIOS" | jq length)
           TOTAL_JOBS=$((LANG_COUNT * TEST_COUNT * CONFIG_COUNT * SCENARIO_COUNT * REPETITIONS))
           
+          echo "runner=$RUNNER" >> $GITHUB_OUTPUT
           echo "languages=$LANGUAGES" >> $GITHUB_OUTPUT
           echo "tests=$TESTS" >> $GITHUB_OUTPUT
           echo "configurations=$CONFIGURATIONS" >> $GITHUB_OUTPUT
@@ -125,6 +138,7 @@ jobs:
           echo "total-jobs=$TOTAL_JOBS" >> $GITHUB_OUTPUT
           
           echo "Benchmark Configuration:"
+          echo "Runner: $RUNNER"
           echo "Languages: $LANGUAGES"
           echo "Tests: $TESTS"
           echo "Configurations: $CONFIGURATIONS"
@@ -135,7 +149,7 @@ jobs:
 
   prepare-benchmark-environment:
     name: Prepare Benchmark Environment
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJson(needs.setup-benchmark-matrix.outputs.runner) }}
     needs: setup-benchmark-matrix
     steps:
       - name: Checkout
@@ -195,7 +209,7 @@ jobs:
 
   build-benchmark-images:
     name: Build Benchmark Images
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJson(needs.setup-benchmark-matrix.outputs.runner) }}
     needs: [setup-benchmark-matrix, prepare-benchmark-environment]
     strategy:
       fail-fast: false
@@ -247,7 +261,7 @@ jobs:
 
   run-benchmark-suite:
     name: Run Benchmark Suite
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJson(needs.setup-benchmark-matrix.outputs.runner) }}
     needs: [setup-benchmark-matrix, build-benchmark-images]
     strategy:
       fail-fast: false

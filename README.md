@@ -164,6 +164,18 @@ Regular expression pattern matching and text processing operations. Tests string
 - **[Docker Compose](https://docs.docker.com/compose/)**: Multi-container orchestration
 - **Node.js**: Result processing and summarization
 
+## 🏗️ Benchmark Infrastructure
+
+Benchmark execution can now target a dedicated self-hosted runner instead of relying only on GitHub-hosted infrastructure. Both benchmark workflows accept a `runner_label` input and also honor the repository variable `BENCHMARK_RUNNER_LABEL`.
+
+The recommended setup is a Terraform-managed Hetzner `cax41` host:
+
+- stack location: `infra/terraform/hetzner`
+- default host profile: 16 vCPU, 32 GB RAM ARM64
+- concurrency model: multiple GitHub runner services on the same host, so matrix jobs can execute in parallel
+
+If no self-hosted runner label is configured, the workflows still fall back to `ubuntu-latest` for ad hoc runs.
+
 ## 📁 Project Structure
 
 ```
