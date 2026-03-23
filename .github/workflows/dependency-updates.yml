@@ -502,7 +502,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'deps: automated dependency updates'
-          title: 'Automated Dependency Updates (${{ github.event.inputs.update_type || 'patch' }})'
+          title: "Automated Dependency Updates (${{ github.event.inputs.update_type || 'patch' }})"
           body: |
             ## 🤖 Automated Dependency Updates
             

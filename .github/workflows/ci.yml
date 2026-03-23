@@ -41,17 +41,31 @@ jobs:
             echo "orchestration=true" >> $GITHUB_OUTPUT
             echo "workflows=true" >> $GITHUB_OUTPUT
           else
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              BASE_SHA="${{ github.event.pull_request.base.sha }}"
+              HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            else
+              BASE_SHA="${{ github.event.before }}"
+              HEAD_SHA="${{ github.sha }}"
+            fi
+
+            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BASE_SHA="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || git rev-list --max-parents=0 "$HEAD_SHA")"
+            fi
+
+            CHANGED_FILES="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+
             # Detect changes in different parts of the project
-            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -q "^services/"; then
+            if echo "$CHANGED_FILES" | grep -q "^services/"; then
               echo "services=true" >> $GITHUB_OUTPUT
             fi
-            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -q "^k6/"; then
+            if echo "$CHANGED_FILES" | grep -q "^k6/"; then
               echo "k6=true" >> $GITHUB_OUTPUT
             fi
-            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -q "^orchestration/"; then
+            if echo "$CHANGED_FILES" | grep -q "^orchestration/"; then
               echo "orchestration=true" >> $GITHUB_OUTPUT
             fi
-            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -q "^.github/workflows/"; then
+            if echo "$CHANGED_FILES" | grep -q "^.github/workflows/"; then
               echo "workflows=true" >> $GITHUB_OUTPUT
             fi
           fi

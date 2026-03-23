@@ -67,6 +67,11 @@ jobs:
           PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "${{ steps.version.outputs.version }}" | head -n1)
           
           if [ -z "$PREVIOUS_TAG" ]; then
+            cat > release_notes.md << EOF
+          # REST API Benchmarks ${{ steps.version.outputs.version }}
+          
+          Initial release of REST API Benchmarks.
+          EOF
             echo "notes=Initial release of REST API Benchmarks" >> $GITHUB_OUTPUT
           else
             # Generate changelog between tags
@@ -464,7 +469,7 @@ jobs:
   update-documentation:
     name: Update Documentation
     runs-on: ubuntu-latest
-    needs: [create-release]
+    needs: [prepare-release, create-release]
     if: needs.prepare-release.outputs.is-prerelease == 'false'
     steps:
       - name: Checkout

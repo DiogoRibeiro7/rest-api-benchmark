@@ -802,7 +802,7 @@ jobs:
     name: Publish Results
     runs-on: ubuntu-latest
     needs: [aggregate-results]
-    if: github.event.inputs.publish_results == 'true' || github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || inputs.publish_results
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
